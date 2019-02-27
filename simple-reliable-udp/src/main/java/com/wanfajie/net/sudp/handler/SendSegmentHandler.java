@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class PacketSequenceHandler extends ChannelOutboundHandlerAdapter {
+public class SendSegmentHandler extends ChannelOutboundHandlerAdapter {
 
     public static final String NAME = "s_udp_segment";
 

@@ -6,7 +6,6 @@ import com.wanfajie.net.sudp.packet.ReplyPacket;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.channel.socket.DatagramPacket;
 
 import java.net.InetSocketAddress;
 import java.util.HashMap;
@@ -60,7 +59,7 @@ public class ReplyHandler extends ChannelInboundHandlerAdapter implements IDirec
             set.add(seq);
             reply = new ReplyPacket(sender, seq, ReplyPacket.ReplyType.RECEIVED);
 
-            ctx.fireChannelRead(new DatagramPacket(packet.content(), packet.recipient(), packet.sender()));
+            ctx.fireChannelRead(msg);
         }
 
         sendDirectly(reply);

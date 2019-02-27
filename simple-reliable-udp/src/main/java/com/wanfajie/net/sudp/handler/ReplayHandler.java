@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-public class SendHandler extends ChannelDuplexHandler implements Runnable {
+public class ReplayHandler extends ChannelDuplexHandler implements Runnable {
 
     public static final String NAME = "s_udp_replay";
 
@@ -38,11 +38,11 @@ public class SendHandler extends ChannelDuplexHandler implements Runnable {
         }
     }
 
-    public SendHandler() {
+    public ReplayHandler() {
         this(Config.MAX_REPLAY_COUNT, Config.REPLAY_TIMEOUT);
     }
 
-    public SendHandler(int _maxReplayCount, int _replayTimeout) {
+    public ReplayHandler(int _maxReplayCount, int _replayTimeout) {
         maxReplayCount = _maxReplayCount;
         replayTimeout = _replayTimeout;
     }
