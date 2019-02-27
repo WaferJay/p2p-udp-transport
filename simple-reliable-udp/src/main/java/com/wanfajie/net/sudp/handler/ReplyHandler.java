@@ -1,5 +1,6 @@
 package com.wanfajie.net.sudp.handler;
 
+import com.wanfajie.net.sudp.Config;
 import com.wanfajie.net.sudp.packet.DataPacket;
 import com.wanfajie.net.sudp.packet.ReplyPacket;
 import io.netty.channel.ChannelFuture;

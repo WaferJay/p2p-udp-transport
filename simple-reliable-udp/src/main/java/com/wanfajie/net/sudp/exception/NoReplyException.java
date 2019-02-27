@@ -1,11 +1,11 @@
 package com.wanfajie.net.sudp.exception;
 
-import com.wanfajie.net.sudp.packet.DataPacket;
+import io.netty.buffer.ByteBufHolder;
 
 public class NoReplyException extends RejectedException {
     public NoReplyException() {}
 
-    public NoReplyException(DataPacket packet) {
+    public NoReplyException(ByteBufHolder packet) {
         super(packet);
     }
 

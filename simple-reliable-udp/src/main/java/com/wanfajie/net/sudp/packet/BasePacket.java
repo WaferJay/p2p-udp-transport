@@ -2,7 +2,7 @@ package com.wanfajie.net.sudp.packet;
 
 import java.net.InetSocketAddress;
 
-public abstract class BasePacket {
+public abstract class BasePacket<M> implements SUdpPacket<M> {
 
     public static final short PROTOCOL_DATA = (short) 0xfeee;
     public static final short PROTOCOL_REPLY = (short) 0xfeed;
@@ -24,6 +24,7 @@ public abstract class BasePacket {
         recipient = _recipient;
     }
 
+    @Override
     public int sequence() {
         return sequence;
     }
@@ -32,10 +33,12 @@ public abstract class BasePacket {
         return crc;
     }
 
+    @Override
     public InetSocketAddress sender() {
         return sender;
     }
 
+    @Override
     public InetSocketAddress recipient() {
         return recipient;
     }

@@ -1,20 +1,20 @@
 package com.wanfajie.net.sudp.handler;
 
-import io.netty.channel.ChannelDuplexHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelPromise;
-import io.netty.channel.socket.DatagramPacket;
+import com.wanfajie.net.sudp.Config;
 import com.wanfajie.net.sudp.exception.NoReplyException;
 import com.wanfajie.net.sudp.exception.RejectedException;
 import com.wanfajie.net.sudp.packet.DataPacket;
 import com.wanfajie.net.sudp.packet.ReplyPacket;
+import io.netty.buffer.ByteBufHolder;
+import io.netty.channel.ChannelDuplexHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
+import io.netty.util.ReferenceCountUtil;
+import io.netty.util.concurrent.ScheduledFuture;
 
-import java.net.InetSocketAddress;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class SendHandler extends ChannelDuplexHandler implements Runnable {
 
@@ -22,10 +22,8 @@ public class SendHandler extends ChannelDuplexHandler implements Runnable {
 
     private final int maxReplayCount;
     private final int replayTimeout;
-    private final int replayPeriod;
 
-    private AtomicInteger idGenerator = new AtomicInteger();
-    private Map<Integer, ReplayTask> taskMap = new HashMap<>();
+    private Map<Integer, ReplayTask> taskMap = new ConcurrentHashMap<>();
     private ChannelHandlerContext context;
     private ScheduledFuture timeoutSchedule;
 
@@ -41,32 +39,27 @@ public class SendHandler extends ChannelDuplexHandler implements Runnable {
     }
 
     public SendHandler() {
-        this(Config.MAX_REPLAY_COUNT, Config.REPLAY_TIMEOUT, Config.REPLAY_TIMEOUT_PERIOD);
+        this(Config.MAX_REPLAY_COUNT, Config.REPLAY_TIMEOUT);
     }
 
-    public SendHandler(int _maxReplayCount, int _replayTimeout, int _replayPeriod) {
+    public SendHandler(int _maxReplayCount, int _replayTimeout) {
         maxReplayCount = _maxReplayCount;
         replayTimeout = _replayTimeout;
-        replayPeriod = _replayPeriod;
     }
 
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) {
         context = ctx;
-        timeoutSchedule = ctx.executor().scheduleAtFixedRate(this,
-                replayTimeout, replayPeriod, TimeUnit.MILLISECONDS);
+        timeoutSchedule = ctx.executor().scheduleWithFixedDelay(this,
+                replayTimeout, 1000, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
-        DatagramPacket udpPacket = (DatagramPacket) msg;
-
-        int seq = (idGenerator.incrementAndGet() & 0xffff) << 16;
-        InetSocketAddress address = udpPacket.recipient();
-        DataPacket packet = new DataPacket(address, seq, udpPacket.content());
+        DataPacket packet = (DataPacket) msg;
 
         sendCopy(packet);
-        taskMap.put(seq, new ReplayTask(packet, promise));
+        taskMap.put(packet.sequence(), new ReplayTask(packet, promise));
     }
 
     @Override
@@ -103,8 +96,8 @@ public class SendHandler extends ChannelDuplexHandler implements Runnable {
         }
     }
 
-    private void sendCopy(DataPacket packet) {
-        context.writeAndFlush(packet.copy());
+    private void sendCopy(ByteBufHolder message) {
+        context.writeAndFlush(message.copy());
     }
 
     private void replayTask(ReplayTask task) {
@@ -113,7 +106,7 @@ public class SendHandler extends ChannelDuplexHandler implements Runnable {
     }
 
     private void removeTask(ReplayTask task) {
-        task.data.release();
+        ReferenceCountUtil.release(task.data);
         taskMap.remove(task.data.sequence());
     }
 
@@ -139,7 +132,7 @@ public class SendHandler extends ChannelDuplexHandler implements Runnable {
     public void close(ChannelHandlerContext ctx, ChannelPromise promise) throws Exception {
         timeoutSchedule.cancel(true);
         for (ReplayTask task : taskMap.values()) {
-            task.data.release();
+            ReferenceCountUtil.release(task.data);
         }
 
         taskMap.clear();

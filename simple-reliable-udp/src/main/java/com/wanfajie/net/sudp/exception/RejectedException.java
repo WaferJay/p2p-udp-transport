@@ -1,13 +1,13 @@
 package com.wanfajie.net.sudp.exception;
 
+import io.netty.buffer.ByteBufHolder;
 import io.netty.channel.ChannelException;
-import com.wanfajie.net.sudp.packet.DataPacket;
 
 public class RejectedException extends ChannelException  {
 
     public RejectedException() {}
 
-    public RejectedException(DataPacket packet) {
+    public RejectedException(ByteBufHolder packet) {
         super(packet.toString());
     }
 

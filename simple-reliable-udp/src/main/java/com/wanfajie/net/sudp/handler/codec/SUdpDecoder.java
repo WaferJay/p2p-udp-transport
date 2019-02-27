@@ -1,6 +1,7 @@
 package com.wanfajie.net.sudp.handler.codec;
 
 import com.wanfajie.net.sudp.CRCUtil;
+import com.wanfajie.net.sudp.Config;
 import com.wanfajie.net.sudp.handler.codec.exception.CRCMismatchException;
 import com.wanfajie.net.sudp.handler.codec.exception.TooLongPacketException;
 import com.wanfajie.net.sudp.packet.BasePacket;
@@ -18,16 +19,7 @@ import java.util.List;
 
 public class SUdpDecoder extends MessageToMessageDecoder<DatagramPacket> {
 
-    private static final int DEFAULT_MAX_CONTENT_SIZE = 1024;
     private static final byte[] ONE_BYTE_ARRAY = {0x00};
-
-    private int maxContentSize;
-
-    public SUdpDecoder(int _maxContentSize) {
-        maxContentSize = _maxContentSize;
-    }
-
-    public SUdpDecoder() { this(DEFAULT_MAX_CONTENT_SIZE); }
 
     @Override
     protected void decode(ChannelHandlerContext ctx, DatagramPacket udpPacket, List<Object> out) {
@@ -49,10 +41,11 @@ public class SUdpDecoder extends MessageToMessageDecoder<DatagramPacket> {
                                         ByteBufAllocator alloc) {
         int seq = in.readInt();
         byte crc = in.readByte();
+        byte flag = in.readByte();
         int replayCount = in.readUnsignedByte();
         int contentLength = in.readInt();
 
-        if (contentLength > maxContentSize) {
+        if (contentLength > Config.PACKET_MAX_CONTENT_LENGTH) {
             throw new TooLongPacketException(sender, seq, contentLength);
         }
 
@@ -67,7 +60,7 @@ public class SUdpDecoder extends MessageToMessageDecoder<DatagramPacket> {
             throw new CRCMismatchException(sender, seq, DataPacket.class);
         }
 
-        return new DataPacket(sender, recipient, seq, crc, replayCount, content, contentLength);
+        return new DataPacket(sender, recipient, seq, crc, replayCount, content, contentLength, flag);
     }
 
     private ReplyPacket createReplyPacket(InetSocketAddress sender, InetSocketAddress recipient, ByteBuf in) {

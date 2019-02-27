@@ -15,6 +15,8 @@ import java.util.List;
 
 public class SUdpEncoder extends MessageToMessageEncoder<BasePacket> {
 
+    private static final int DEFAULT_CAPACITY = 1536;
+
     @Override
     protected void encode(ChannelHandlerContext ctx, BasePacket msg, List<Object> out) {
 
@@ -48,12 +50,13 @@ public class SUdpEncoder extends MessageToMessageEncoder<BasePacket> {
 
     private static DatagramPacket udpPacket(DataPacket packet, ByteBufAllocator alloc) {
         InetSocketAddress receiver = packet.recipient();
-        ByteBuf buf = alloc.buffer();
+        ByteBuf buf = alloc.buffer(DEFAULT_CAPACITY);
 
         buf.writeShort(BasePacket.PROTOCOL_DATA);
 
         buf.writeInt(packet.sequence());
         buf.writeByte(0x00);
+        buf.writeByte(packet.flag());
 
         byte replayCount;
         if (packet.replayCount() >> 8 == 0) {

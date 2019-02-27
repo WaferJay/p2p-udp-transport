@@ -1,4 +1,4 @@
-import com.wanfajie.net.sudp.handler.Config;
+import com.wanfajie.net.sudp.Config;
 import com.wanfajie.net.sudp.handler.ReplyHandler;
 import com.wanfajie.net.sudp.packet.DataPacket;
 import com.wanfajie.net.sudp.packet.ReplyPacket;
@@ -59,7 +59,14 @@ public class ReplyHandlerTest {
         InetSocketAddress recipient = randomAddress();
         int sequence = random.nextInt();
 
-        DataPacket packet = new DataPacket(sender, recipient, sequence, (byte) 0x00, (byte) (maxReplayCount+1), Unpooled.EMPTY_BUFFER, 0);
+        DataPacket packet = new DataPacket(sender,
+                recipient,
+                sequence,
+                (byte) 0x00,
+                (byte) (maxReplayCount+1),
+                Unpooled.EMPTY_BUFFER,
+                0).flagLast();
+
         assertFalse(channel.writeInbound(packet));
 
         ReplyPacket reply = channel.readOutbound();

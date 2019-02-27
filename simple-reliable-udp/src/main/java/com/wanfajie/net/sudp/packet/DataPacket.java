@@ -5,33 +5,58 @@ import io.netty.buffer.ByteBufHolder;
 
 import java.net.InetSocketAddress;
 
-public class DataPacket extends BasePacket implements ByteBufHolder {
+public class DataPacket extends BasePacket<ByteBuf> implements ByteBufHolder {
+
+    public static final byte FLAG_LAST = 0x01;
+    public static final byte FLAG_NO_REPLY = 0x02;
 
     private int replayCount;
+    private byte flag;
     private ByteBuf content;
     private int contentLength;
 
     public DataPacket(InetSocketAddress sender,
                       InetSocketAddress recipient,
                       int seq, byte crc,
-                      int _replayCount,
+                      int replayCount,
                       ByteBuf byteBuf,
                       int length) {
+
+        this(sender, recipient, seq, crc, replayCount, byteBuf, length, (byte) 0);
+    }
+
+    public DataPacket(InetSocketAddress sender,
+                      InetSocketAddress recipient,
+                      int seq, byte crc,
+                      int _replayCount,
+                      ByteBuf byteBuf,
+                      int length, byte _flag) {
 
         super(sender, recipient, seq, crc);
         replayCount = _replayCount;
         content = byteBuf;
         contentLength = length;
+        flag = _flag;
     }
 
     public DataPacket(InetSocketAddress recipient,
                       int seq,
                       ByteBuf byteBuf) {
 
+        this(recipient, seq, byteBuf, 0, (byte) 0);
+    }
+
+    private DataPacket(InetSocketAddress recipient,
+                      int seq,
+                      ByteBuf byteBuf,
+                      int _replayCount,
+                      byte _flag) {
+
         super(recipient, seq);
-        replayCount = 0;
+        replayCount = _replayCount;
         content = byteBuf;
         contentLength = byteBuf.writerIndex();
+        flag = _flag;
     }
 
     public int incrReplayCount() {
@@ -71,27 +96,27 @@ public class DataPacket extends BasePacket implements ByteBufHolder {
     }
 
     @Override
-    public ByteBufHolder copy() {
+    public DataPacket copy() {
         return replace(content.copy());
     }
 
     @Override
-    public ByteBufHolder duplicate() {
+    public DataPacket duplicate() {
         return replace(content.duplicate());
     }
 
     @Override
-    public ByteBufHolder retainedDuplicate() {
+    public DataPacket retainedDuplicate() {
         return replace(content.retainedDuplicate());
     }
 
     @Override
-    public ByteBufHolder replace(ByteBuf content) {
+    public DataPacket replace(ByteBuf content) {
         if (sender() != null) {
             return new DataPacket(sender(), recipient(), sequence(), crc8(),
-                    replayCount, content, content.readableBytes());
+                    replayCount, content, content.readableBytes(), flag);
         } else {
-            return new DataPacket(recipient(), sequence(), content);
+            return new DataPacket(recipient(), sequence(), content, replayCount, flag);
         }
     }
 
@@ -108,13 +133,13 @@ public class DataPacket extends BasePacket implements ByteBufHolder {
     }
 
     @Override
-    public ByteBufHolder touch() {
+    public DataPacket touch() {
         content.touch();
         return this;
     }
 
     @Override
-    public ByteBufHolder touch(Object hint) {
+    public DataPacket touch(Object hint) {
         content.touch(hint);
         return this;
     }
@@ -125,6 +150,25 @@ public class DataPacket extends BasePacket implements ByteBufHolder {
                 "sequence=" + sequence() +
                 ", replayCount=" + replayCount +
                 ", contentLength=" + contentLength +
+                ", flag=" + Integer.toBinaryString(flag) +
                 '}';
+    }
+
+    public DataPacket flagNoReply() {
+        flag |= FLAG_NO_REPLY;
+        return this;
+    }
+
+    public DataPacket flagLast() {
+        flag |= FLAG_LAST;
+        return this;
+    }
+
+    public byte flag() {
+        return flag;
+    }
+
+    public void flag(int f) {
+        flag = (byte) f;
     }
 }

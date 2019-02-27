@@ -1,13 +1,14 @@
 package com.wanfajie.net.sudp;
 
 import com.wanfajie.net.sudp.handler.InvalidPacketHandler;
+import com.wanfajie.net.sudp.handler.PacketSequenceHandler;
+import com.wanfajie.net.sudp.handler.ReplyHandler;
+import com.wanfajie.net.sudp.handler.SendHandler;
+import com.wanfajie.net.sudp.handler.codec.SUdpCodec;
 import com.wanfajie.net.sudp.handler.filter.OneAddressFilterHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.DatagramChannel;
-import com.wanfajie.net.sudp.handler.codec.SUdpCodec;
-import com.wanfajie.net.sudp.handler.SendHandler;
-import com.wanfajie.net.sudp.handler.ReplyHandler;
 import io.netty.util.AttributeKey;
 
 import java.net.InetSocketAddress;
@@ -23,14 +24,15 @@ public class SUdpInitializer extends ChannelInitializer<DatagramChannel> {
         ReplyHandler replyHandler = new ReplyHandler();
         SendHandler sendHandler = new SendHandler();
 
-        ch.pipeline().addFirst(SUdpCodec.NAME, codec)
+        ch.pipeline().addLast(SUdpCodec.NAME, codec)
             .addAfter(SUdpCodec.NAME, InvalidPacketHandler.NAME, invalidHandler)
             .addAfter(InvalidPacketHandler.NAME, ReplyHandler.NAME, replyHandler)
-            .addAfter(ReplyHandler.NAME, SendHandler.NAME, sendHandler);
+            .addAfter(ReplyHandler.NAME, SendHandler.NAME, sendHandler)
+            .addAfter(SendHandler.NAME, PacketSequenceHandler.NAME, new PacketSequenceHandler());
 
         InetSocketAddress address = ch.attr(CONNECT_TO).get();
         if (address != null) {
-            ch.pipeline().addFirst(new OneAddressFilterHandler(address));
+            ch.pipeline().addBefore(SUdpCodec.NAME, "address_filter", new OneAddressFilterHandler(address));
         }
 
         ChannelHandlerContext preCodecContext = ch.pipeline().context(SendHandler.NAME);
